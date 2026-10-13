@@ -91,14 +91,15 @@ cost = 命中输入/1e6 × P_hit + 未命中输入/1e6 × P_miss + 输出/1e6 ×
 
 ## 安装
 
-```
-dsh plugin add dsh-deepseek-turn-cost
-```
+本插件**不在 npm 上发布**（npm 上同名的 `dsh-deepseek-balance` 是另一个作者的另一个插件，与本项目无关）。安装方式二选一：
 
-或以本地目录安装（开发时）：
+**① 从本仓库安装**——克隆到本地任意目录，然后让 DSH 按目录安装：
 
 ```
-plugin_manager { action: "install_bundle", target: "<本仓库的绝对路径>" }
+git clone https://github.com/lhylhy2024/dsh-deepseek-turn-cost.git
+plugin_manager { action: "install_bundle", target: "<克隆下来的绝对路径>" }
 ```
+
+**② 从插件市场安装**——本插件正在提交至 [awesome-dsh-plugin](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin) 精选列表；被收录后即可在 DSH 内置的插件市场（`dshmarket`）里一键安装，无需手动克隆。
 
 安装后刷新页面即可看到三处落点。改 `client.js` 后刷新页面即可生效；改 `index.js`（Host 半边）需要重启 DSH 进程。
