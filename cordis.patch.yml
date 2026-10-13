@@ -1,0 +1,10 @@
+# dsh-deepseek-turn-cost 的 bundle patch。
+#
+# 安装（当前 profile 由 plugin_manager 的 install_bundle 完成，不要手改 profile 文件）：
+#   plugin_manager { action: install_bundle, target: "D:\\Workspace\\dsh-deepseek-balance" }
+#
+# 这一行挂载 Host 半边（两条回环 HTTP 路由：/dsh-deepseek-turn-cost/state 与 /analyze）。
+# UI 半边由 package.json 的 dsh.client 声明，浏览器侧由 dsh-client-modules 加载 client.js。
+- insert:
+    - id: deepseek-turn-cost
+      name: 'dsh-deepseek-turn-cost'
