@@ -1,5 +1,5 @@
 {
-  "name": "dsh-deepseek-turn-cost",
+  "name": "dsh-simple-cost",
   "version": "0.1.0",
   "license": "MIT",
   "description": "DeepSeek 账户余额与本会话计费挂件：常驻在侧边栏账户区上方，显示账户余额、当前对话的 token 费用、峰谷时段提醒，并对超出 token 阈值的单轮对话提供按钮触发的 AI 分析。",
@@ -32,11 +32,11 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/lhylhy2024/dsh-deepseek-turn-cost.git"
+    "url": "git+https://github.com/lhylhy2024/dsh-simple-cost.git"
   },
-  "homepage": "https://github.com/lhylhy2024/dsh-deepseek-turn-cost#readme",
+  "homepage": "https://github.com/lhylhy2024/dsh-simple-cost#readme",
   "bugs": {
-    "url": "https://github.com/lhylhy2024/dsh-deepseek-turn-cost/issues"
+    "url": "https://github.com/lhylhy2024/dsh-simple-cost/issues"
   },
   "author": "lhylhy2024",
   "dsh": {

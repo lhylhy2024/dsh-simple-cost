@@ -1,4 +1,4 @@
-// dsh-deepseek-turn-cost — 浏览器半边（dsh.client bundle）。
+// dsh-simple-cost — 浏览器半边（dsh.client bundle）。
 //
 // 三个落点（全部由本文件注册，互不重叠）：
 //
@@ -20,8 +20,8 @@
 // 写进 store，因此不再需要「会话信标」那一套回写设计。
 //
 // 数据都来自同一个 Host 插件注册的两条回环 HTTP 路由（同源，直接 fetch 相对路径）：
-//   GET  /dsh-deepseek-turn-cost/state?sessionId=<可选>  → 余额 / 逐轮用量 / 峰谷时段快照
-//   POST /dsh-deepseek-turn-cost/analyze                 → 单轮 AI 分析（可能跑 30–120 秒）
+//   GET  /dsh-simple-cost/state?sessionId=<可选>  → 余额 / 逐轮用量 / 峰谷时段快照
+//   POST /dsh-simple-cost/analyze                 → 单轮 AI 分析（可能跑 30–120 秒）
 // 浏览器半边看不到会话事件流，也拿不到账户凭据，所以这些数字只能由 Host 侧算好下发。
 //
 // 加载方式：由 dsh-client-modules 作为页面里的普通 JS 模块提供给页面，经
@@ -29,7 +29,7 @@
 // 只 require("react") 与 require("react-dom")（后者仅用于 createPortal），
 // 不 import 任何 @deepseek-ai/* 包 —— 所有控件都用 h() 自绘，降低与宿主版本耦合的风险。
 window.__ModuleLoader__.load({
-  id: "dsh-deepseek-turn-cost",
+  id: "dsh-simple-cost",
   factory: (require) => {
     const React = require("react");
     const ReactDOM = require("react-dom");
@@ -41,9 +41,9 @@ window.__ModuleLoader__.load({
     const createPortal = ReactDOM && typeof ReactDOM.createPortal === "function" ? ReactDOM.createPortal : null;
 
     /** 语言字典命名空间。 */
-    const NS = "deepseekTurnCost";
+    const NS = "simpleCost";
     /** 条目 id 前缀（各落点自己拼后缀）。 */
-    const ENTRY_ID = "deepseek-turn-cost";
+    const ENTRY_ID = "simple-cost";
     /** 落点一：Settings 旁边的 sidebar footer 动作区（root 作用域）。 */
     const SLOT_SIDEBAR = "sidebar.footer.action";
     /** 落点二：输入框下方信息条（session 作用域，standardProps 带 sessionId）。 */
@@ -51,8 +51,8 @@ window.__ModuleLoader__.load({
     /** 落点三：每轮对话的动作行（session 作用域，ownerProps 带 messageId）。 */
     const SLOT_TURN_ACTIONS = "conversation.chat.assistant-actions";
     /** Host 侧两条回环路由。 */
-    const ROUTE_STATE = "/dsh-deepseek-turn-cost/state";
-    const ROUTE_ANALYZE = "/dsh-deepseek-turn-cost/analyze";
+    const ROUTE_STATE = "/dsh-simple-cost/state";
+    const ROUTE_ANALYZE = "/dsh-simple-cost/analyze";
     /** 轮询兜底间隔（毫秒）；响应里带 pollMs 时以响应为准。 */
     const DEFAULT_POLL_MS = 5000;
     /** 数据还没回来时的占位符。 */
@@ -151,60 +151,60 @@ window.__ModuleLoader__.load({
 
     /** 落点一：侧栏卡片。 */
     const CARD_STYLES = `
-.dstc-root{width:100%;box-sizing:border-box;font-size:12px;line-height:1.5;font-variant-numeric:tabular-nums;color:var(--dsw-alias-label-primary,#1f2328)}
-.dstc-card{width:100%;box-sizing:border-box;display:flex;flex-direction:column;gap:6px;padding:8px;border:1px solid var(--dsw-alias-border-l1,rgba(127,127,127,.22));border-radius:8px;background:var(--dsw-alias-bg-layer-1,#ffffff)}
-.dstc-block{display:flex;flex-direction:column;gap:2px;min-width:0}
-.dstc-row{display:flex;align-items:center;justify-content:space-between;gap:6px;min-width:0}
-.dstc-label{color:var(--dsw-alias-label-secondary,#8a8f98)}
-.dstc-amount{font-weight:600;color:var(--dsw-alias-label-primary,#1f2328);font-variant-numeric:tabular-nums}
-.dstc-amount-lg{font-size:18px}
-.dstc-extra{color:var(--dsw-alias-label-secondary,#9aa0a6)}
-.dstc-note{color:var(--dsw-alias-label-secondary,#9aa0a6);word-break:break-word}
-.dstc-error{border-left:3px solid var(--dsw-alias-state-error-primary,#d92d20);border-radius:6px;padding:4px 6px;background:var(--dsw-alias-bg-layer-2,#f5f6f7);color:var(--dsw-alias-state-error-primary,#d92d20);word-break:break-word}
-.dstc-phase{display:flex;flex-direction:column;gap:0;padding-left:6px;border-left:3px solid transparent;color:var(--dsw-alias-label-secondary,#8a8f98)}
-.dstc-phase-main{overflow:hidden;text-overflow:ellipsis}
-.dstc-phase-sub{color:var(--dsw-alias-label-secondary,#9aa0a6)}
-.dstc-phase.is-peak{border-left-color:var(--dsw-alias-state-warn-primary,#e08a00);color:var(--dsw-alias-state-warn-primary,#e08a00)}
-.dstc-phase.is-peak .dstc-phase-main{font-weight:700}
-.dstc-phase.is-off{border-left-color:var(--dsw-alias-state-success-primary,#12a150);color:var(--dsw-alias-state-success-primary,#12a150)}
-.dstc-btn{display:inline-flex;align-items:center;height:20px;padding:0 6px;border:1px solid var(--dsw-alias-border-l2,rgba(127,127,127,.3));border-radius:5px;background:transparent;color:var(--dsw-alias-label-secondary,#8a8f98);font:inherit;font-size:11px;line-height:1;cursor:pointer}
-.dstc-btn:hover:enabled{border-color:var(--dsw-alias-brand-primary,#4d6bfe);color:var(--dsw-alias-brand-primary,#4d6bfe)}
-.dstc-btn:focus-visible{outline:2px solid var(--dsw-alias-brand-primary,#4d6bfe);outline-offset:1px}
-.dstc-dot{flex:none;width:6px;height:6px;border-radius:50%;background:var(--dsw-alias-label-secondary,#9aa0a6)}
-.dstc-dot.is-peak{background:var(--dsw-alias-state-warn-primary,#e08a00)}
-.dstc-dot.is-off{background:var(--dsw-alias-state-success-primary,#12a150)}
-.dstc-mini{display:flex;align-items:center;justify-content:center;gap:3px;height:18px;max-width:100%;box-sizing:border-box;padding:0 4px;border-radius:5px;background:var(--dsw-alias-bg-layer-2,#f5f6f7);color:var(--dsw-alias-label-secondary,#8a8f98);font-size:10px;line-height:18px;font-variant-numeric:tabular-nums;cursor:default}
-.dstc-mini-text{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dsc-root{width:100%;box-sizing:border-box;font-size:12px;line-height:1.5;font-variant-numeric:tabular-nums;color:var(--dsw-alias-label-primary,#1f2328)}
+.dsc-card{width:100%;box-sizing:border-box;display:flex;flex-direction:column;gap:6px;padding:8px;border:1px solid var(--dsw-alias-border-l1,rgba(127,127,127,.22));border-radius:8px;background:var(--dsw-alias-bg-layer-1,#ffffff)}
+.dsc-block{display:flex;flex-direction:column;gap:2px;min-width:0}
+.dsc-row{display:flex;align-items:center;justify-content:space-between;gap:6px;min-width:0}
+.dsc-label{color:var(--dsw-alias-label-secondary,#8a8f98)}
+.dsc-amount{font-weight:600;color:var(--dsw-alias-label-primary,#1f2328);font-variant-numeric:tabular-nums}
+.dsc-amount-lg{font-size:18px}
+.dsc-extra{color:var(--dsw-alias-label-secondary,#9aa0a6)}
+.dsc-note{color:var(--dsw-alias-label-secondary,#9aa0a6);word-break:break-word}
+.dsc-error{border-left:3px solid var(--dsw-alias-state-error-primary,#d92d20);border-radius:6px;padding:4px 6px;background:var(--dsw-alias-bg-layer-2,#f5f6f7);color:var(--dsw-alias-state-error-primary,#d92d20);word-break:break-word}
+.dsc-phase{display:flex;flex-direction:column;gap:0;padding-left:6px;border-left:3px solid transparent;color:var(--dsw-alias-label-secondary,#8a8f98)}
+.dsc-phase-main{overflow:hidden;text-overflow:ellipsis}
+.dsc-phase-sub{color:var(--dsw-alias-label-secondary,#9aa0a6)}
+.dsc-phase.is-peak{border-left-color:var(--dsw-alias-state-warn-primary,#e08a00);color:var(--dsw-alias-state-warn-primary,#e08a00)}
+.dsc-phase.is-peak .dsc-phase-main{font-weight:700}
+.dsc-phase.is-off{border-left-color:var(--dsw-alias-state-success-primary,#12a150);color:var(--dsw-alias-state-success-primary,#12a150)}
+.dsc-btn{display:inline-flex;align-items:center;height:20px;padding:0 6px;border:1px solid var(--dsw-alias-border-l2,rgba(127,127,127,.3));border-radius:5px;background:transparent;color:var(--dsw-alias-label-secondary,#8a8f98);font:inherit;font-size:11px;line-height:1;cursor:pointer}
+.dsc-btn:hover:enabled{border-color:var(--dsw-alias-brand-primary,#4d6bfe);color:var(--dsw-alias-brand-primary,#4d6bfe)}
+.dsc-btn:focus-visible{outline:2px solid var(--dsw-alias-brand-primary,#4d6bfe);outline-offset:1px}
+.dsc-dot{flex:none;width:6px;height:6px;border-radius:50%;background:var(--dsw-alias-label-secondary,#9aa0a6)}
+.dsc-dot.is-peak{background:var(--dsw-alias-state-warn-primary,#e08a00)}
+.dsc-dot.is-off{background:var(--dsw-alias-state-success-primary,#12a150)}
+.dsc-mini{display:flex;align-items:center;justify-content:center;gap:3px;height:18px;max-width:100%;box-sizing:border-box;padding:0 4px;border-radius:5px;background:var(--dsw-alias-bg-layer-2,#f5f6f7);color:var(--dsw-alias-label-secondary,#8a8f98);font-size:10px;line-height:18px;font-variant-numeric:tabular-nums;cursor:default}
+.dsc-mini-text{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 `;
 
     /** 落点二：输入框下方信息条里的一行小字（不是块级卡片）。 */
     const DOCK_STYLES = `
-.dstc-dock{display:inline-flex;align-items:center;gap:4px;min-width:0;font-size:12px;line-height:1.4;font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--dsw-alias-label-secondary,#8a8f98)}
-.dstc-dock-label{color:var(--dsw-alias-label-secondary,#8a8f98)}
-.dstc-dock-cost{color:var(--dsw-alias-label-primary,#1f2328)}
-.dstc-approx{flex:none;padding:0 3px;border-radius:4px;background:var(--dsw-alias-bg-layer-2,#f5f6f7);color:var(--dsw-alias-label-secondary,#9aa0a6);cursor:help}
+.dsc-dock{display:inline-flex;align-items:center;gap:4px;min-width:0;font-size:12px;line-height:1.4;font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--dsw-alias-label-secondary,#8a8f98)}
+.dsc-dock-label{color:var(--dsw-alias-label-secondary,#8a8f98)}
+.dsc-dock-cost{color:var(--dsw-alias-label-primary,#1f2328)}
+.dsc-approx{flex:none;padding:0 3px;border-radius:4px;background:var(--dsw-alias-bg-layer-2,#f5f6f7);color:var(--dsw-alias-label-secondary,#9aa0a6);cursor:help}
 `;
 
     /** 落点三：逐轮条目 + AI 分析浮层。 */
     const TURN_STYLES = `
-.dstc-turn-action{display:inline-flex;align-items:center;gap:8px;min-width:0;font-size:12px;line-height:1;font-variant-numeric:tabular-nums;color:var(--dsw-alias-label-secondary,#8a8f98)}
-.dstc-turn-cost{white-space:nowrap;color:var(--dsw-alias-label-secondary,#8a8f98)}
-.dstc-abtn{display:inline-flex;align-items:center;justify-content:center;min-width:16px;height:16px;padding:0 4px;box-sizing:border-box;border:1px solid var(--dsw-alias-border-l2,rgba(127,127,127,.3));border-radius:4px;background:transparent;color:var(--dsw-alias-label-secondary,#8a8f98);font:inherit;font-size:10px;line-height:1;cursor:pointer}
-.dstc-abtn:hover:enabled{border-color:var(--dsw-alias-brand-primary,#4d6bfe);color:var(--dsw-alias-brand-primary,#4d6bfe)}
-.dstc-abtn:focus-visible{outline:2px solid var(--dsw-alias-brand-primary,#4d6bfe);outline-offset:1px}
-.dstc-abtn:disabled{opacity:.6;cursor:default}
-.dstc-abtn.is-open{border-color:var(--dsw-alias-brand-primary,#4d6bfe);color:var(--dsw-alias-brand-primary,#4d6bfe)}
-.dstc-pop{position:fixed;z-index:${POP_Z_INDEX};display:flex;flex-direction:column;gap:6px;padding:8px 10px;border:1px solid var(--dsw-alias-border-l1,rgba(127,127,127,.22));border-radius:8px;background:var(--dsw-alias-bg-overlay,#ffffff);box-shadow:0 10px 28px rgba(0,0,0,.18);font-size:12px;line-height:1.5;text-align:left;color:var(--dsw-alias-label-primary,#1f2328)}
-.dstc-pop-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
-.dstc-pop-title{font-weight:600;color:var(--dsw-alias-label-primary,#1f2328)}
-.dstc-pop-tools{display:inline-flex;align-items:center;gap:6px;min-width:0}
-.dstc-pop-route{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--dsw-alias-label-secondary,#9aa0a6)}
-.dstc-pop-close{display:inline-flex;align-items:center;height:18px;padding:0 6px;border:1px solid var(--dsw-alias-border-l2,rgba(127,127,127,.3));border-radius:5px;background:transparent;color:var(--dsw-alias-label-secondary,#8a8f98);font:inherit;font-size:11px;line-height:1;cursor:pointer}
-.dstc-pop-close:hover{border-color:var(--dsw-alias-brand-primary,#4d6bfe);color:var(--dsw-alias-brand-primary,#4d6bfe)}
-.dstc-pop-text{white-space:pre-wrap;word-break:break-word;color:var(--dsw-alias-label-primary,#1f2328)}
-.dstc-pop-loading{color:var(--dsw-alias-label-secondary,#9aa0a6)}
-.dstc-pop-error{color:var(--dsw-alias-state-error-primary,#d92d20);word-break:break-word}
-.dstc-pop-degraded{margin-bottom:4px;color:var(--dsw-alias-state-warn-primary,#b54708)}
+.dsc-turn-action{display:inline-flex;align-items:center;gap:8px;min-width:0;font-size:12px;line-height:1;font-variant-numeric:tabular-nums;color:var(--dsw-alias-label-secondary,#8a8f98)}
+.dsc-turn-cost{white-space:nowrap;color:var(--dsw-alias-label-secondary,#8a8f98)}
+.dsc-abtn{display:inline-flex;align-items:center;justify-content:center;min-width:16px;height:16px;padding:0 4px;box-sizing:border-box;border:1px solid var(--dsw-alias-border-l2,rgba(127,127,127,.3));border-radius:4px;background:transparent;color:var(--dsw-alias-label-secondary,#8a8f98);font:inherit;font-size:10px;line-height:1;cursor:pointer}
+.dsc-abtn:hover:enabled{border-color:var(--dsw-alias-brand-primary,#4d6bfe);color:var(--dsw-alias-brand-primary,#4d6bfe)}
+.dsc-abtn:focus-visible{outline:2px solid var(--dsw-alias-brand-primary,#4d6bfe);outline-offset:1px}
+.dsc-abtn:disabled{opacity:.6;cursor:default}
+.dsc-abtn.is-open{border-color:var(--dsw-alias-brand-primary,#4d6bfe);color:var(--dsw-alias-brand-primary,#4d6bfe)}
+.dsc-pop{position:fixed;z-index:${POP_Z_INDEX};display:flex;flex-direction:column;gap:6px;padding:8px 10px;border:1px solid var(--dsw-alias-border-l1,rgba(127,127,127,.22));border-radius:8px;background:var(--dsw-alias-bg-overlay,#ffffff);box-shadow:0 10px 28px rgba(0,0,0,.18);font-size:12px;line-height:1.5;text-align:left;color:var(--dsw-alias-label-primary,#1f2328)}
+.dsc-pop-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.dsc-pop-title{font-weight:600;color:var(--dsw-alias-label-primary,#1f2328)}
+.dsc-pop-tools{display:inline-flex;align-items:center;gap:6px;min-width:0}
+.dsc-pop-route{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--dsw-alias-label-secondary,#9aa0a6)}
+.dsc-pop-close{display:inline-flex;align-items:center;height:18px;padding:0 6px;border:1px solid var(--dsw-alias-border-l2,rgba(127,127,127,.3));border-radius:5px;background:transparent;color:var(--dsw-alias-label-secondary,#8a8f98);font:inherit;font-size:11px;line-height:1;cursor:pointer}
+.dsc-pop-close:hover{border-color:var(--dsw-alias-brand-primary,#4d6bfe);color:var(--dsw-alias-brand-primary,#4d6bfe)}
+.dsc-pop-text{white-space:pre-wrap;word-break:break-word;color:var(--dsw-alias-label-primary,#1f2328)}
+.dsc-pop-loading{color:var(--dsw-alias-label-secondary,#9aa0a6)}
+.dsc-pop-error{color:var(--dsw-alias-state-error-primary,#d92d20);word-break:break-word}
+.dsc-pop-degraded{margin-bottom:4px;color:var(--dsw-alias-state-warn-primary,#b54708)}
 `;
 
     /* ------------------------------------------------------------ 数值格式化 */
@@ -315,7 +315,7 @@ window.__ModuleLoader__.load({
         try {
           listener();
         } catch (cause) {
-          console.warn("[dsh-deepseek-turn-cost] 订阅者回调报错：", cause);
+          console.warn("[dsh-simple-cost] 订阅者回调报错：", cause);
         }
       }
     }
@@ -540,9 +540,9 @@ window.__ModuleLoader__.load({
           : PLACEHOLDER;
         return h(
           "div",
-          { className: "dstc-mini", title: summary, "aria-label": summary },
-          h("span", { key: "dot", className: `dstc-dot ${peak ? "is-peak" : "is-off"}` }),
-          h("span", { key: "text", className: "dstc-mini-text" }, compact),
+          { className: "dsc-mini", title: summary, "aria-label": summary },
+          h("span", { key: "dot", className: `dsc-dot ${peak ? "is-peak" : "is-off"}` }),
+          h("span", { key: "text", className: "dsc-mini-text" }, compact),
         );
       }
 
@@ -552,41 +552,41 @@ window.__ModuleLoader__.load({
 
       if (error !== null) {
         const text = errorText(error, t);
-        blocks.push(h("div", { key: "error", className: "dstc-error", title: text }, text));
+        blocks.push(h("div", { key: "error", className: "dsc-error", title: text }, text));
       }
 
       blocks.push(h(
         "div",
-        { key: "balance", className: "dstc-block" },
+        { key: "balance", className: "dsc-block" },
         h(
           "div",
-          { key: "row", className: "dstc-row" },
-          h("span", { key: "label", className: "dstc-label" }, t("balanceLabel")),
-          h("button", { key: "refresh", type: "button", className: "dstc-btn", title: t("refreshTitle"), onClick: () => void load() }, t("refresh")),
+          { key: "row", className: "dsc-row" },
+          h("span", { key: "label", className: "dsc-label" }, t("balanceLabel")),
+          h("button", { key: "refresh", type: "button", className: "dsc-btn", title: t("refreshTitle"), onClick: () => void load() }, t("refresh")),
         ),
-        h("div", { key: "main", className: "dstc-amount dstc-amount-lg", title: balanceNote || undefined }, balanceMain),
+        h("div", { key: "main", className: "dsc-amount dsc-amount-lg", title: balanceNote || undefined }, balanceMain),
         // 失败原因 / 余额不足提醒：小字可见，鼠标悬停还能看全文。
-        balanceNote ? h("div", { key: "note", className: "dstc-note", title: balanceNote }, balanceNote) : null,
-        ...extraWallets.map((wallet) => h("div", { key: wallet.key, className: "dstc-extra" }, wallet.text)),
+        balanceNote ? h("div", { key: "note", className: "dsc-note", title: balanceNote }, balanceNote) : null,
+        ...extraWallets.map((wallet) => h("div", { key: wallet.key, className: "dsc-extra" }, wallet.text)),
       ));
 
       // 时段只保留「空闲时段 / 高峰时段」四个字 + 下一档切换时间，倍率与北京时间不再上卡片。
       blocks.push(h(
         "div",
-        { key: "phase", className: `dstc-phase ${peak ? "is-peak" : "is-off"}` },
-        h("div", { key: "main", className: "dstc-phase-main" }, phase === null ? PLACEHOLDER : String(phase.label || "")),
+        { key: "phase", className: `dsc-phase ${peak ? "is-peak" : "is-off"}` },
+        h("div", { key: "main", className: "dsc-phase-main" }, phase === null ? PLACEHOLDER : String(phase.label || "")),
         h(
           "div",
-          { key: "sub", className: "dstc-phase-sub" },
+          { key: "sub", className: "dsc-phase-sub" },
           phaseCountdown(t, phase),
         ),
       ));
 
       return h(
         "div",
-        { className: "dstc-root" },
+        { className: "dsc-root" },
         h("style", { key: "style" }, CARD_STYLES),
-        h("div", { key: "card", className: "dstc-card" }, blocks),
+        h("div", { key: "card", className: "dsc-card" }, blocks),
       );
     }
 
@@ -644,12 +644,12 @@ window.__ModuleLoader__.load({
 
       return h(
         "span",
-        { className: "dstc-dock" },
+        { className: "dsc-dock" },
         h("style", { key: "style" }, DOCK_STYLES),
-        h("span", { key: "label", className: "dstc-dock-label" }, t("sessionCostLabel")),
-        h("span", { key: "cost", className: "dstc-dock-cost" }, cost),
+        h("span", { key: "label", className: "dsc-dock-label" }, t("sessionCostLabel")),
+        h("span", { key: "cost", className: "dsc-dock-cost" }, cost),
         approx
-          ? h("span", { key: "approx", className: "dstc-approx", title: t("recentBadgeTitle") }, t("recentBadge"))
+          ? h("span", { key: "approx", className: "dsc-approx", title: t("recentBadgeTitle") }, t("recentBadge"))
           : null,
       );
     }
@@ -791,28 +791,28 @@ window.__ModuleLoader__.load({
       if (opened) {
         const head = h(
           "div",
-          { key: "head", className: "dstc-pop-head" },
-          h("span", { key: "title", className: "dstc-pop-title" }, turnNo === null ? t("turnAnalyze") : fmt(t, "analysisTitle", { n: turnNo })),
+          { key: "head", className: "dsc-pop-head" },
+          h("span", { key: "title", className: "dsc-pop-title" }, turnNo === null ? t("turnAnalyze") : fmt(t, "analysisTitle", { n: turnNo })),
           h(
             "span",
-            { key: "tools", className: "dstc-pop-tools" },
+            { key: "tools", className: "dsc-pop-tools" },
             node && node.model
               ? h(
                 "span",
-                { key: "route", className: "dstc-pop-route", title: `${node.provider || ""} / ${node.model}` },
+                { key: "route", className: "dsc-pop-route", title: `${node.provider || ""} / ${node.model}` },
                 `${t("analysisRouteLabel")}: ${node.model}`,
               )
               : null,
-            h("button", { key: "close", type: "button", className: "dstc-pop-close", onClick: () => setOpen(false) }, t("analysisClose")),
+            h("button", { key: "close", type: "button", className: "dsc-pop-close", onClick: () => setOpen(false) }, t("analysisClose")),
           ),
         );
         let body = null;
         if (node === null || node.status === "loading") {
-          body = h("div", { key: "body", className: "dstc-pop-loading" }, t("analysisLoadingHint"));
+          body = h("div", { key: "body", className: "dsc-pop-loading" }, t("analysisLoadingHint"));
         } else if (node.status === "error") {
           body = h(
             "div",
-            { key: "body", className: "dstc-pop-error" },
+            { key: "body", className: "dsc-pop-error" },
             `${t("analysisFailed")}${node.error ? `：${node.error}` : ""}`,
           );
         } else {
@@ -820,11 +820,11 @@ window.__ModuleLoader__.load({
           body = h(
             "div",
             { key: "body" },
-            node.degraded ? h("div", { key: "degraded", className: "dstc-pop-degraded" }, t("analysisDegraded")) : null,
-            h("div", { key: "text", className: "dstc-pop-text" }, node.text),
+            node.degraded ? h("div", { key: "degraded", className: "dsc-pop-degraded" }, t("analysisDegraded")) : null,
+            h("div", { key: "text", className: "dsc-pop-text" }, node.text),
           );
         }
-        panel = h("div", { key: "panel", ref: panelRef, className: "dstc-pop", style: popPlacement(anchor) }, head, body);
+        panel = h("div", { key: "panel", ref: panelRef, className: "dsc-pop", style: popPlacement(anchor) }, head, body);
       }
 
       const portalTarget = typeof document !== "undefined" ? document.body : null;
@@ -837,15 +837,15 @@ window.__ModuleLoader__.load({
         null,
         h(
           "span",
-          { key: "action", ref: rootRef, className: "dstc-turn-action", style: { order: TURN_ACTION_ORDER } },
+          { key: "action", ref: rootRef, className: "dsc-turn-action", style: { order: TURN_ACTION_ORDER } },
           h("style", { key: "style" }, TURN_STYLES),
-          h("span", { key: "cost", className: "dstc-turn-cost" }, fmt(t, "turnCostLabel", { amount })),
+          h("span", { key: "cost", className: "dsc-turn-cost" }, fmt(t, "turnCostLabel", { amount })),
           h(
             "button",
             {
               key: "btn",
               type: "button",
-              className: `dstc-abtn${opened ? " is-open" : ""}`,
+              className: `dsc-abtn${opened ? " is-open" : ""}`,
               disabled: loading || turnNo === null,
               title: loading ? t("analysisLoading") : t("turnAnalyze"),
               "aria-label": t("turnAnalyze"),
@@ -865,7 +865,7 @@ window.__ModuleLoader__.load({
      * @param ctx - 客户端 cordis 上下文。
      */
     function apply(ctx) {
-      ctx.effect(() => ctx.locale.register(NS, { zh, en }), "dsh-deepseek-turn-cost: dictionaries");
+      ctx.effect(() => ctx.locale.register(NS, { zh, en }), "dsh-simple-cost: dictionaries");
       const t = ctx.locale.bind(NS);
 
       // 落点一：账户区上方的余额 / 时段卡片（root 作用域，拿不到 sessionId，也不需要）。

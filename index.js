@@ -1,5 +1,5 @@
 /**
- * dsh-deepseek-turn-cost —— Host 半边。
+ * dsh-simple-cost —— Host 半边。
  *
  * 为什么逻辑必须在 Host 侧：
  *   - 逐轮 token 用量只存在于 Host 的会话日志里（`ctx.sessions.get(id).snapshotEvents()`，
@@ -30,7 +30,7 @@
  */
 
 /** 路由前缀。两条路由都是 exact，不会和随附的组合撞名。 */
-const ROUTE_BASE = '/dsh-deepseek-turn-cost'
+const ROUTE_BASE = '/dsh-simple-cost'
 /** 余额接口的默认 base url；实际使用的地址见 `apiBaseUrl()`（可被同名环境变量覆盖）。 */
 const API_BASE = 'https://api.deepseek.com'
 /** 覆盖余额接口 base url 的环境变量名，与 llm-deepseek 适配器保持一致。 */
@@ -1189,7 +1189,7 @@ export function apply(ctx, config) {
 
   ctx.effect(() => {
     if (ctx.webServer === undefined || ctx.webServer === null || typeof ctx.webServer.register !== 'function') {
-      ctx.logger?.warn?.('dsh-deepseek-turn-cost: webServer 服务不可用，已跳过路由注册')
+      ctx.logger?.warn?.('dsh-simple-cost: webServer 服务不可用，已跳过路由注册')
       return () => {}
     }
     const disposeState = ctx.webServer.register({
@@ -1282,9 +1282,9 @@ export function apply(ctx, config) {
         // 同上。
       }
     }
-  }, 'dsh-deepseek-turn-cost: loopback routes')
+  }, 'dsh-simple-cost: loopback routes')
 
-  ctx.logger?.info?.(`dsh-deepseek-turn-cost ready on ${ROUTE_BASE}/state`)
+  ctx.logger?.info?.(`dsh-simple-cost ready on ${ROUTE_BASE}/state`)
   // 把生效后的选项返回出去：cordis 会忽略返回值，但自检/调试能直接断言 config 覆盖结果。
   return options
 }

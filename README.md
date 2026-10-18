@@ -1,4 +1,4 @@
-# dsh-deepseek-turn-cost
+# dsh-simple-cost
 
 DeepSeek Harness 的**账户余额 + 本会话计费**挂件。
 
@@ -53,8 +53,8 @@ cost = 命中输入/1e6 × P_hit + 未命中输入/1e6 × P_miss + 输出/1e6 ×
 
 ```
 浏览器半边 client.js  ──fetch 同源──▶  Host 半边 index.js 注册的两条回环路由
-                                        GET  /dsh-deepseek-turn-cost/state?sessionId=
-                                        POST /dsh-deepseek-turn-cost/analyze
+                                        GET  /dsh-simple-cost/state?sessionId=
+                                        POST /dsh-simple-cost/analyze
 ```
 
 这与 `dsh-client-modules` 把自己的 bundle 挂在 `webServer` 上是同一条路。路由只接受回环地址（`127.0.0.1` / `::1`）。
@@ -96,7 +96,7 @@ cost = 命中输入/1e6 × P_hit + 未命中输入/1e6 × P_miss + 输出/1e6 ×
 **① 从本仓库安装**——克隆到本地任意目录，然后让 DSH 按目录安装：
 
 ```
-git clone https://github.com/lhylhy2024/dsh-deepseek-turn-cost.git
+git clone https://github.com/lhylhy2024/dsh-simple-cost.git
 plugin_manager { action: "install_bundle", target: "<克隆下来的绝对路径>" }
 ```
 
