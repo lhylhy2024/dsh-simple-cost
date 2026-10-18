@@ -270,6 +270,19 @@ function nextSwitch(date) {
 }
 
 /**
+ * 切换倒计时文案：剩余超过 1 小时按小时显示（保留一位小数，整数不带小数点），
+ * 进入最后一小时才切回分钟。
+ */
+function countdownLabel(deltaMs, target) {
+  const minutes = Math.max(1, Math.round(deltaMs / 60000))
+  if (minutes >= 60) {
+    const hours = Math.round((minutes / 60) * 10) / 10
+    return `${Number.isInteger(hours) ? hours : hours.toFixed(1)} 小时后转为${target}时段`
+  }
+  return `${minutes} 分钟后转为${target}时段`
+}
+
+/**
  * 时段快照。
  * 只回「高峰时段 / 空闲时段」四个字 + 下一次切换的倒计时：
  * 倍数、北京时间这些字眼按用户要求（m00867）不再下发到界面上 ——
@@ -286,7 +299,7 @@ function phaseInfo(date) {
     nextSwitchAt: switchAt,
     nextSwitchLabel: switchAt === null
       ? ''
-      : `${Math.max(1, Math.round((switchAt - date.getTime()) / 60000))} 分钟后转为${isPeak(new Date(switchAt)) ? '高峰' : '空闲'}时段`,
+      : countdownLabel(switchAt - date.getTime(), isPeak(new Date(switchAt)) ? '高峰' : '空闲'),
   }
 }
 

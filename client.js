@@ -98,6 +98,10 @@ window.__ModuleLoader__.load({
       errNetwork: "请求出错",
       summaryBalance: "余额",
       summaryPhase: "时段",
+      bandPeak: "高峰",
+      bandOff: "空闲",
+      nextSwitchHours: "{hours} 小时后转为{band}时段",
+      nextSwitchMinutes: "{minutes} 分钟后转为{band}时段",
     };
 
     const en = {
@@ -129,6 +133,10 @@ window.__ModuleLoader__.load({
       errNetwork: "Request error",
       summaryBalance: "Balance",
       summaryPhase: "Rate",
+      bandPeak: "peak",
+      bandOff: "off-peak",
+      nextSwitchHours: "{band} in {hours} h",
+      nextSwitchMinutes: "{band} in {minutes} min",
     };
 
     /* ---------------------------------------------------------------- 样式 */
@@ -576,7 +584,7 @@ window.__ModuleLoader__.load({
         h(
           "div",
           { key: "sub", className: "dstc-phase-sub" },
-          phase && phase.nextSwitchLabel ? stripApprox(String(phase.nextSwitchLabel)) : "",
+          phaseCountdown(t, phase),
         ),
       ));
 
@@ -591,6 +599,31 @@ window.__ModuleLoader__.load({
     /** 用户明确要求去掉「约 96 分钟后…」里的「约」；后端若已去掉，这里是空操作。 */
     function stripApprox(text) {
       return text.replace(/^约\s*/, "");
+    }
+
+    /**
+     * 时段倒计时文案：剩余超过 1 小时按小时显示（保留一位小数，整数不带小数点），
+     * 进入最后一小时才切回分钟。
+     *
+     * 用绝对时间戳 `phase.nextSwitchAt` 现算而不是直接用后端下发的字符串 ——
+     * 这样每次轮询都会自动走字，且改这里不需要重启 DSH 的 Host 半边。
+     * `nextSwitchAt` 缺失时（旧版宿主）才退回后端文案。
+     */
+    function phaseCountdown(t, phase) {
+      if (phase === null || phase === undefined) return "";
+      // 时段一定会翻转：现在是高峰，下一次切换就是转空闲，反之亦然。
+      const band = phase.peak === true ? t("bandOff") : t("bandPeak");
+      const at = Number(phase.nextSwitchAt);
+      if (Number.isFinite(at) && at > 0) {
+        const minutes = Math.max(1, Math.round((at - Date.now()) / 60000));
+        if (minutes >= 60) {
+          const hours = Math.round((minutes / 60) * 10) / 10;
+          return fmt(t, "nextSwitchHours", { hours: Number.isInteger(hours) ? String(hours) : hours.toFixed(1), band });
+        }
+        return fmt(t, "nextSwitchMinutes", { minutes, band });
+      }
+      const fallback = phase.nextSwitchLabel;
+      return fallback === undefined || fallback === null ? "" : stripApprox(String(fallback));
     }
 
     /* ------------------------------------------------- 落点二：信息条会话费用 */
