@@ -153,8 +153,7 @@ window.__ModuleLoader__.load({
     const CARD_STYLES = `
 .dstc-root{width:100%;box-sizing:border-box;font-size:12px;line-height:1.5;font-variant-numeric:tabular-nums;color:var(--dsw-alias-label-primary,#1f2328)}
 .dstc-card{width:100%;box-sizing:border-box;display:flex;flex-direction:column;gap:6px;padding:8px;border:1px solid var(--dsw-alias-border-l1,rgba(127,127,127,.22));border-radius:8px;background:var(--dsw-alias-bg-layer-1,#ffffff)}
-.dstc-head{display:flex;align-items:center;justify-content:space-between;gap:6px}
-.dstc-title{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600;color:var(--dsw-alias-label-primary,#1f2328)}
+.dstc-head{display:flex;align-items:center;justify-content:flex-end;gap:6px}
 .dstc-block{display:flex;flex-direction:column;gap:2px;min-width:0}
 .dstc-row{display:flex;align-items:center;gap:4px;min-width:0}
 .dstc-label{color:var(--dsw-alias-label-secondary,#8a8f98)}
@@ -554,7 +553,6 @@ window.__ModuleLoader__.load({
         h(
           "div",
           { key: "head", className: "dstc-head" },
-          h("span", { key: "title", className: "dstc-title" }, t("title")),
           h(
             "button",
             { key: "refresh", type: "button", className: "dstc-btn", title: t("refreshTitle"), onClick: () => void load() },
