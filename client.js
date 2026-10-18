@@ -100,7 +100,8 @@ window.__ModuleLoader__.load({
       summaryPhase: "时段",
       bandPeak: "高峰",
       bandOff: "空闲",
-      nextSwitchHours: "{hours} 小时后转为{band}时段",
+      nextSwitchHours: "{hours} 小时 {minutes} 分钟后转为{band}时段",
+      nextSwitchWholeHours: "{hours} 小时后转为{band}时段",
       nextSwitchMinutes: "{minutes} 分钟后转为{band}时段",
     };
 
@@ -135,7 +136,8 @@ window.__ModuleLoader__.load({
       summaryPhase: "Rate",
       bandPeak: "peak",
       bandOff: "off-peak",
-      nextSwitchHours: "{band} in {hours} h",
+      nextSwitchHours: "{band} in {hours} h {minutes} min",
+      nextSwitchWholeHours: "{band} in {hours} h",
       nextSwitchMinutes: "{band} in {minutes} min",
     };
 
@@ -602,8 +604,8 @@ window.__ModuleLoader__.load({
     }
 
     /**
-     * 时段倒计时文案：剩余超过 1 小时按小时显示（保留一位小数，整数不带小数点），
-     * 进入最后一小时才切回分钟。
+     * 时段倒计时文案：剩余超过 1 小时按「x 小时 y 分钟」显示（整小时省掉分钟段），
+     * 进入最后一小时才只说分钟。
      *
      * 用绝对时间戳 `phase.nextSwitchAt` 现算而不是直接用后端下发的字符串 ——
      * 这样每次轮询都会自动走字，且改这里不需要重启 DSH 的 Host 半边。
@@ -617,8 +619,10 @@ window.__ModuleLoader__.load({
       if (Number.isFinite(at) && at > 0) {
         const minutes = Math.max(1, Math.round((at - Date.now()) / 60000));
         if (minutes >= 60) {
-          const hours = Math.round((minutes / 60) * 10) / 10;
-          return fmt(t, "nextSwitchHours", { hours: Number.isInteger(hours) ? String(hours) : hours.toFixed(1), band });
+          const hours = Math.floor(minutes / 60);
+          const rest = minutes % 60;
+          if (rest === 0) return fmt(t, "nextSwitchWholeHours", { hours, band });
+          return fmt(t, "nextSwitchHours", { hours, minutes: rest, band });
         }
         return fmt(t, "nextSwitchMinutes", { minutes, band });
       }

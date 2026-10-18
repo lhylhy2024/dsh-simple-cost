@@ -270,14 +270,17 @@ function nextSwitch(date) {
 }
 
 /**
- * 切换倒计时文案：剩余超过 1 小时按小时显示（保留一位小数，整数不带小数点），
- * 进入最后一小时才切回分钟。
+ * 切换倒计时文案：剩余超过 1 小时按「x 小时 y 分钟」显示（整小时省掉分钟段），
+ * 进入最后一小时才只说分钟。
  */
 function countdownLabel(deltaMs, target) {
   const minutes = Math.max(1, Math.round(deltaMs / 60000))
   if (minutes >= 60) {
-    const hours = Math.round((minutes / 60) * 10) / 10
-    return `${Number.isInteger(hours) ? hours : hours.toFixed(1)} 小时后转为${target}时段`
+    const hours = Math.floor(minutes / 60)
+    const rest = minutes % 60
+    return rest === 0
+      ? `${hours} 小时后转为${target}时段`
+      : `${hours} 小时 ${rest} 分钟后转为${target}时段`
   }
   return `${minutes} 分钟后转为${target}时段`
 }
