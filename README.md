@@ -7,6 +7,10 @@ DeepSeek Harness 的**账户余额 + 本会话计费**挂件。
 > configurable token threshold. Peak / off-peak pricing is applied per the official DeepSeek price list.
 > No dependencies beyond DSH itself.
 
+![dsh-simple-cost 在 DSH 里的样子：侧边栏账户区上方的余额与时段、每一轮动作行末尾的本轮费用与 A 按钮、输入框下方信息条里的本会话累计费用](assets/screenshot-1.png)
+
+_侧边栏：账户余额 + 高峰/空闲时段 + 距下次切换；每轮动作行：`用量 xxM tok` 之后是本轮费用，再往后是 AI 分析的 **A** 按钮；输入框下方：本会话累计费用。（对话内容已打码。）_
+
 ## 它显示什么（三个落点）
 
 | 落点 | Slot | 内容 |
