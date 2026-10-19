@@ -753,6 +753,19 @@ window.__ModuleLoader__.load({
       const loading = !!(node && node.status === "loading");
       const opened = open && anchor !== null;
 
+      /**
+       * 「超阈值才给分析按钮」——这是最初的需求，也是 README 与插件市场条目里的原话。
+       * 金额照旧每轮都显示，只有按钮受阈值约束。
+       * 阈值信息缺失时按「超阈值」处理（fail-open）：宁可多给一个按钮，也不要静默把功能藏掉。
+       */
+      const totalTokens = turn.tokens && typeof turn.tokens.totalTokens === "number" ? turn.tokens.totalTokens : null;
+      const limitTokens = data && typeof data.thresholdTokens === "number" ? data.thresholdTokens : null;
+      const overThreshold = typeof turn.overThreshold === "boolean"
+        ? turn.overThreshold
+        : totalTokens !== null && limitTokens !== null
+          ? totalTokens >= limitTokens
+          : true;
+
       /** 请求本轮分析结果；写进本条目自己的 state（各条目互不共享）。 */
       const runAnalyze = async (turnNoToUse) => {
         setNode({ status: "loading" });
@@ -840,7 +853,7 @@ window.__ModuleLoader__.load({
           { key: "action", ref: rootRef, className: "dsc-turn-action", style: { order: TURN_ACTION_ORDER } },
           h("style", { key: "style" }, TURN_STYLES),
           h("span", { key: "cost", className: "dsc-turn-cost" }, fmt(t, "turnCostLabel", { amount })),
-          h(
+          overThreshold ? h(
             "button",
             {
               key: "btn",
@@ -852,7 +865,7 @@ window.__ModuleLoader__.load({
               onClick: toggle,
             },
             loading ? "…" : opened ? t("collapse") : "A",
-          ),
+          ) : null,
         ),
         overlay,
       );
